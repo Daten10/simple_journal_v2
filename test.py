@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox, Menu
 import json
 from datetime import datetime
 from tkcalendar import DateEntry
+from plyer import notification
 
 # Create the main window
 root = tk.Tk()
@@ -193,13 +194,6 @@ def delete_note():
             json.dump(notes, f)
 
 
-# Add buttons to the main window
-new_button = ttk.Button(root, text="New Note", command=add_note)
-new_button.pack(side=tk.LEFT, padx=10, pady=10)
-
-delete_button = ttk.Button(root, text="Delete", command=delete_note)
-delete_button.pack(side=tk.LEFT, padx=10, pady=10)
-# Create a DateEntry widget for selecting the date
 date_label = ttk.Label(root, text="Select Date:")
 date_label.pack(padx=10, pady=5)
 
@@ -227,6 +221,21 @@ def load_notes_for_date(event=None):
         load_notes(date_str)
 
 
+# Function to send notification if notes exist for the selected date
+def notify_if_notes_exist(date_str):
+    if date_str in notes:
+        notes_for_date = notes[date_str]
+        for note in notes_for_date:
+            notification_title = note["title"]  # Заголовок уведомления
+            notification_message = note["content"]  # Описание уведомления
+            notification.notify(
+                title=notification_title,
+                message=notification_message,
+                app_icon='pics/notifpic.ico',  # Можно указать путь к иконке
+                timeout=10  # Время показа уведомления в секундах
+            )
+
+
 # создаем меню
 menu = Menu(root)
 new_item = Menu(menu, tearoff=0)
@@ -244,6 +253,9 @@ root.config(menu=menu)
 # Call the load_notes function when the app starts
 today_date_str = datetime.today().strftime("%Y-%m-%d")
 load_notes(today_date_str)
+
+selected_date = datetime.today().strftime("%Y-%m-%d")
+notify_if_notes_exist(selected_date)  # Проверяем и отправляем уведомление
 
 
 date_listbox = tk.Listbox(root, width=20, height=10)
