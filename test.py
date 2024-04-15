@@ -8,7 +8,7 @@ from plyer import notification
 # Create the main window
 root = tk.Tk()
 root.title("Daily Planner")
-root.geometry("500x500")
+root.geometry("600x640")
 
 # Create the notebook to hold the notes
 notebook = ttk.Notebook(root)
@@ -22,6 +22,13 @@ except FileNotFoundError:
     pass
 
 
+# Функция для обновления Listbox
+def update_listbox():
+    date_listbox.delete(0, tk.END)  # Очищаем содержимое Listbox
+    for note in notes:
+        date_listbox.insert(tk.END, note)  # Добавляем каждую заметку в Listbox
+
+
 # Function to populate the listbox with dates having notes
 def populate_date_listbox():
     date_listbox.delete(0, tk.END)  # Clear previous items
@@ -33,27 +40,30 @@ def populate_date_listbox():
     for date in dates_with_notes:
         date_listbox.insert(tk.END, date)
 
+# функция для закрытия окна
+def exit_btn():
+    root.destroy()
 
 # Function to add a new note for a specific date
 def add_note():
     # Create a new tab for the note
     note_frame = ttk.Frame(notebook)
-    notebook.add(note_frame, text="New Note")
+    notebook.add(note_frame, text="Новая заметка")
 
     # Create entry widgets for the title and content of the note
-    title_label = ttk.Label(note_frame, text="Title:")
+    title_label = ttk.Label(note_frame, text="Название:")
     title_label.grid(row=0, column=0, padx=10, pady=10, sticky="W")
 
     title_entry = ttk.Entry(note_frame, width=40)
     title_entry.grid(row=0, column=1, padx=10, pady=10)
 
-    content_label = ttk.Label(note_frame, text="Content:")
+    content_label = ttk.Label(note_frame, text="Содержание:")
     content_label.grid(row=1, column=0, padx=10, pady=10, sticky="W")
 
     content_entry = tk.Text(note_frame, width=40, height=10)
     content_entry.grid(row=1, column=1, padx=10, pady=10)
 
-    date_label = ttk.Label(note_frame, text="Date:")
+    date_label = ttk.Label(note_frame, text="Дата:")
     date_label.grid(row=2, column=0, padx=10, pady=10, sticky="W")
 
     date_entry = DateEntry(note_frame, date_pattern="yyyy-mm-dd")
@@ -78,9 +88,10 @@ def add_note():
         note_content.insert(tk.END, content)
         notebook.forget(notebook.select())
         notebook.add(note_content, text=title)
+        update_listbox()
 
     # Add a save button to the note frame
-    save_button = ttk.Button(note_frame, text="Save", command=save_note)
+    save_button = ttk.Button(note_frame, text="Сохранить", command=save_note)
     save_button.grid(row=3, column=1, padx=10, pady=10)
 
 
@@ -140,27 +151,27 @@ def edit_note():
 
 
 edit_button = ttk.Button(root, text="Сохранить изменения", command=edit_note)
-edit_button.pack(padx=10, pady=10)
+edit_button.pack(side='bottom', padx=10, pady=10)
 
 
-# Function to load notes for a specific date
-def load_notes(date_str):
-    global notes  # Add this line to use the global variable
-    try:
-        with open("notes.json", "r") as f:
-            notes = json.load(f)
-
-        if date_str in notes:
-            for note in notes[date_str]:
-                # Add the note to the notebook
-                note_content = tk.Text(notebook, width=40, height=10)
-                note_content.insert(tk.END, note["content"])
-                notebook.add(note_content, text=note["title"])
-
-    except FileNotFoundError:
-
-        # If the file does not exist, do nothing
-        pass
+# # Function to load notes for a specific date
+# def load_notes(date_str):
+#     global notes  # Add this line to use the global variable
+#     try:
+#         with open("notes.json", "r") as f:
+#             notes = json.load(f)
+#
+#         if date_str in notes:
+#             for note in notes[date_str]:
+#                 # Add the note to the notebook
+#                 note_content = tk.Text(notebook, width=40, height=10)
+#                 note_content.insert(tk.END, note["content"])
+#                 notebook.add(note_content, text=note["title"])
+#
+#     except FileNotFoundError:
+#
+#         # If the file does not exist, do nothing
+#         pass
 
 
 # Function to delete a note
@@ -172,7 +183,7 @@ def delete_note():
     note_title = notebook.tab(current_tab, "text")
 
     # Show a confirmation dialog
-    confirm = messagebox.askyesno("Delete Note", f"Are you sure you want to delete {note_title}?")
+    confirm = messagebox.askyesno("Удалить заметку", f"Вы уверены что хотите удалить {note_title}?")
 
     if confirm:
         # Remove the note from the notebook
@@ -192,9 +203,10 @@ def delete_note():
         # Save the notes dictionary to the file
         with open("notes.json", "w") as f:
             json.dump(notes, f)
+        update_listbox()
 
 
-date_label = ttk.Label(root, text="Select Date:")
+date_label = ttk.Label(root, text="Выберите дату:")
 date_label.pack(padx=10, pady=5)
 
 
@@ -239,14 +251,15 @@ def notify_if_notes_exist(date_str):
 # создаем меню
 menu = Menu(root)
 new_item = Menu(menu, tearoff=0)
+exit_item = Menu(menu, tearoff=0)
 new_item.add_command(label='Новая заметка', command=add_note)
 new_item.add_separator()
 new_item.add_command(label='Сохранить изменения', command=edit_note)
 new_item.add_separator()
 new_item.add_command(label='Удалить заметку', command=delete_note)
-
+exit_item.add_command(label='Выход', command=exit_btn)
 menu.add_cascade(label='Файл', menu=new_item)
-
+menu.add_cascade(label='Выход', menu=exit_item)
 
 root.config(menu=menu)
 
@@ -257,13 +270,18 @@ load_notes(today_date_str)
 selected_date = datetime.today().strftime("%Y-%m-%d")
 notify_if_notes_exist(selected_date)  # Проверяем и отправляем уведомление
 
-
-date_listbox = tk.Listbox(root, width=20, height=10)
-date_listbox.pack(padx=10, pady=10)
-
-scrollbar = ttk.Scrollbar(orient="vertical", command=date_listbox.yview)
+scrollbar = ttk.Scrollbar(root)
 scrollbar.pack(side='right', fill='y')
-date_listbox["yscrollcommand"] = scrollbar.set
+
+date_label = ttk.Label(root, text="Список заметок:")
+date_label.pack(padx=10, pady=5, anchor='ne')
+
+date_listbox = tk.Listbox(root, width=15, height=30, yscrollcommand=scrollbar.set)
+date_listbox.pack(padx=10, pady=30, side='right')
+
+scrollbar.config(orient="vertical", command=date_listbox.yview)
+
+# date_listbox["yscrollcommand"] = scrollbar.set
 
 populate_date_listbox()  # Populate the listbox with dates
 date_listbox.bind("<Double-Button-1>", load_notes_for_date)  # Load notes on double-click
