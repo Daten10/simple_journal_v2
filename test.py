@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, Menu, PhotoImage, Label, StringVar
+from tkinter import ttk, messagebox, Menu, StringVar
 from tkinter.messagebox import showinfo
 import json
 from datetime import datetime
@@ -9,6 +9,7 @@ from plyer import notification
 
 # создаем главное окно
 root = tk.Tk()
+
 root.title("Daily Planner")
 root.geometry("660x640")
 root.resizable(width=False, height=False)
@@ -31,6 +32,14 @@ label_style.configure("Dark.TLabel",          # имя стиля
                     background="#3e3f42")   # фоновый цвет
 
 
+label_style = ttk.Style()
+label_style.configure("Pink.TLabel",          # имя стиля
+                    font="helvetica 11",    # шрифт
+                    foreground="#57375D",   # цвет текста
+                    padding=10,             # отступы
+                    background="#FED9ED")   # фоновый цвет
+
+
 # функция для создания второго окна
 def open_new_window():
 
@@ -44,34 +53,38 @@ def open_new_window():
     # sets the geometry of toplevel
     newWindow.geometry("200x200")
 
-    Default = "White Theme"
-    Picture = "Picture Theme"
+    Default = "Default Theme"
+    Pink = "Pink Theme"
     Dark = "Dark Theme"
 
     # по умолчанию будет выбран элемент с value=java
     classic = StringVar(value=Default)
 
-    default_btn = ttk.Radiobutton(newWindow, text=Default, value=Default, variable=classic, command=theme_color_2)
+    default_btn = ttk.Radiobutton(newWindow, text=Default, value=Default, variable=classic,
+                                  command=return_to_default_theme)
     default_btn.pack(padx=0, pady=0)
 
-    pic_btn = ttk.Radiobutton(newWindow, text=Picture, value=Picture, variable=classic, command=theme_color_1)
+    pic_btn = ttk.Radiobutton(newWindow, text=Pink, value=Pink, variable=classic, command=theme_color_3)
     pic_btn.pack(padx=0, pady=0)
 
     dark_btn = ttk.Radiobutton(newWindow, text=Dark, value=Dark, variable=classic, command=theme_color_2)
     dark_btn.pack(padx=0, pady=0)
 
 
-
-
-
-
-# Load saved notes
+# загрузка сохраненных заметок
 notes = {}
-try:
-    with open("notes.json", "r") as f:
-        notes = json.load(f)
-except FileNotFoundError:
-    pass
+
+def load_notes_from_file():
+    global notes
+    try:
+        with open("notes.json", "r") as f:
+            notes = json.load(f)
+    except FileNotFoundError:
+        pass
+
+
+# вызываем функцию загрузки при запуске приложения
+load_notes_from_file()
 
 
 # Функция для обновления Listbox
@@ -81,14 +94,14 @@ def update_listbox():
         date_listbox.insert(tk.END, note)  # Добавляем каждую заметку в Listbox
 
 
-# Function to populate the listbox with dates having notes
+# функция для заполнения листбокса датами в которые есть заметки
 def populate_date_listbox():
-    date_listbox.delete(0, tk.END)  # Clear previous items
+    date_listbox.delete(0, tk.END)  # Очищаем содержимое Listbox
 
-    # Collect all dates that have notes
+    # Cобираем даты на которые есть заметки
     dates_with_notes = [date for date in notes.keys()]
 
-    # Populate the listbox with these dates
+    # заполнение листбокса собранным массивом дат
     for date in dates_with_notes:
         date_listbox.insert(tk.END, date)
 
@@ -98,18 +111,20 @@ def exit_btn():
     root.destroy()
 
 
+# всплывающее окно об успешном сохранении изменений
 def open_info():
     showinfo(title="Успех!", message="Изменения сохранены")
 
 
-# Function to add a new note for a specific date
+# функция для добавления новой заметки на определенную дату
 def add_note():
     global flag
-    # Create a new tab for the note
+
+    # создание нового таба для заметки
     note_frame = ttk.Frame(notebook)
     notebook.add(note_frame, text="Новая заметка")
 
-    # Create entry widgets for the title and content of the note
+    # создание виджетов для ввода названия заметки и ввода контента
     title_label = ttk.Label(note_frame, text="Название:", style='My.TLabel')
     title_label.grid(row=0, column=0, padx=10, pady=10, sticky="W")
 
@@ -128,32 +143,41 @@ def add_note():
     date_entry = DateEntry(note_frame, date_pattern="yyyy-mm-dd")
     date_entry.grid(row=2, column=1, padx=10, pady=10)
 
+    # код для изменения стилей
     if flag == 1:
         title_label.config(style='Dark.TLabel')
         content_label.config(style='Dark.TLabel')
         date_label.config(style='Dark.TLabel')
-    # Create a function to save the note
+
+        # код для изменения стилей
+    if flag == 2:
+        title_label.config(style='Pink.TLabel')
+        content_label.config(style='Pink.TLabel')
+        date_label.config(style='Pink.TLabel')
+
+    # создаем функцию для сохранения заметок
+    # Функция для сохранения заметок
     def save_note():
-        # Get the title, content, and date of the note
+        # получаем дату, название и контент заметки
         title = title_entry.get()
         content = content_entry.get("1.0", tk.END)
         date_str = date_entry.get_date().strftime("%Y-%m-%d")
 
-        # Add the note to the notes dictionary under the date key
+        # добавляем заметку в словарь заметок по ключу дата
         notes.setdefault(date_str, []).append({"title": title, "content": content.strip()})
 
-        # Save the notes dictionary to the file
+        # сохранение словаря заметок в файл с отступами в 4 пробела
         with open("notes.json", "w") as f:
-            json.dump(notes, f)
+            json.dump(notes, f, indent=4, ensure_ascii=False)
 
-        # Add the note to the notebook
+        # добавляем заметку в активный блокнот
         note_content = tk.Text(notebook, width=40, height=10)
         note_content.insert(tk.END, content)
         notebook.forget(notebook.select())
         notebook.add(note_content, text=title)
         update_listbox()
 
-    # Add a save button to the note frame
+    # добавление кнопки сохранения
     save_button = ttk.Button(note_frame, text="Сохранить", command=save_note)
     save_button.grid(row=3, column=1, padx=10, pady=10)
 
@@ -284,21 +308,35 @@ def notify_if_notes_exist(date_str):
             )
 
 
-def theme_color_1():
-    root.image = PhotoImage(file='pics/bg1.png')
-    bg_logo = Label(root, image=root.image)
-    bg_logo.place(x=0, y=0, relwidth=1, relheight=1)
-    bg_logo.lower()
-    root.update()
-    root.update_idletasks()
-
-
 def theme_color_2():
     global flag
     flag = 1
     root['background'] = '#222222'
     edit_button.config(style='Dark.TLabel')
     date_label.config(style='Dark.TLabel')
+
+    root.update()
+    root.update_idletasks()
+
+
+def theme_color_3():
+    global flag
+    flag = 2
+    root['background'] = '#E6B9DE'
+    edit_button.config(style='Pink.TLabel')
+    date_label.config(style='Pink.TLabel')
+
+    root.update()
+    root.update_idletasks()
+
+
+# Функция для возврата к исходной теме
+def return_to_default_theme():
+    global flag
+    flag = 0  # Сбрасываем флаг, чтобы вернуться к исходной теме
+    root['background'] = '#FFFFFF'  # Исходный цвет фона
+    edit_button.config(style='My.TLabel')  # Исходный стиль кнопки
+    date_label.config(style='My.TLabel')  # Исходный стиль надписи даты
 
     root.update()
     root.update_idletasks()
